@@ -2,25 +2,50 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
 var trashDir string
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+
 	rootCmd := &cobra.Command{
 		Use:   "trash",
 		Short: "Move files to the trash directory",
-		Run:   trashFile,
 	}
 
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "put",
+		Short: "Move files or directories to the trash",
+		Run:   trashFile,
+	}, &cobra.Command{
+		Use:   "clear",
+		Short: "Remove all files from the trash",
+		Run:   clearTrashCan,
+	},
+	)
 	rootCmd.Flags().StringVarP(&trashDir, "trash-dir", "t", filepath.Join(os.Getenv("HOME"), ".trash"), "Directory to store trashed files")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+}
+
+func clearTrashCan(cmd *cobra.Command, args []string) {
+
+	password := os.Getenv("PASSWORD")
+	err := exec.Command("/bin/sh", "-c", "sudo rm -rf ~/.Trash/ -p "+password).Run()
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 }
 
